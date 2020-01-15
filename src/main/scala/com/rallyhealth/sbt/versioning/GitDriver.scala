@@ -12,7 +12,7 @@ import scala.sys.process._
 trait GitDriver {
 
   /** Used to find the previous version and to check whether the HEAD and version commit are the same   */
-  def branchState: GitBranchState
+  def branchState(firstParent: Boolean): GitBranchState
 
   /** Used to determine whether the current version is dirty or not. */
   def workingState: GitWorkingState
@@ -23,7 +23,7 @@ trait GitDriver {
     * @param hash A commit hash to stop counting. This will NOT be included in the count. If None this will count all
     * commits back to the first commit.
     */
-  def getCommitCount(hash: Option[String]): Int
+  def getCommitCount(hash: Option[String], firstParent: Boolean): Int
 
   /**
     * Returns the current version of the code from the branch version AND git's working state. (Including the current
@@ -33,9 +33,9 @@ trait GitDriver {
     * @param ignoreDirty Forces clean builds, i.e. when true this will not add '-dirty' to the version (nor
     * force creating a [[SnapshotVersion]] from a [[ReleaseVersion]]).
     */
-  def calcCurrentVersion(ignoreDirty: Boolean): SemanticVersion = {
+  def calcCurrentVersion(ignoreDirty: Boolean, firstParent: Boolean): SemanticVersion = {
 
-    val currVersion: SemanticVersion = branchState match {
+    val currVersion: SemanticVersion = branchState(firstParent) match {
 
       case GitBranchStateTwoReleases(_, headVersion, _, _) =>
         headVersion
@@ -93,13 +93,13 @@ class GitDriverImpl(dir: File) extends GitDriver {
     }
   }
 
-  override val branchState: GitBranchState = {
-    gitLog("--max-count=1").headOption match {
+  override def branchState(firstParent: Boolean): GitBranchState = {
+    gitLog("--max-count=1", firstParent).headOption match {
 
       case Some(headCommit) =>
 
         // we only care about the RELEASE commits
-        val releases: Seq[(GitCommit, ReleaseVersion)] = gitLog("").collect { case gc @ ReleaseVersion(rv) => (gc, rv) }
+        val releases: Seq[(GitCommit, ReleaseVersion)] = gitLog("", firstParent).collect { case gc @ ReleaseVersion(rv) => (gc, rv) }
 
         val maybeCurrRelease = releases.headOption
         val maybePrevRelease = releases.drop(1).headOption
@@ -116,11 +116,11 @@ class GitDriverImpl(dir: File) extends GitDriver {
             GitBranchStateOneReleaseHead(currCommit, currVersion)
 
           case (Some((currCommit, currVersion)), _) =>
-            val headCommitWithCount = GitCommitWithCount(headCommit, getCommitCount(Some(currCommit.fullHash)))
+            val headCommitWithCount = GitCommitWithCount(headCommit, getCommitCount(Some(currCommit.fullHash), firstParent))
             GitBranchStateOneReleaseNotHead(headCommitWithCount, currCommit, currVersion)
 
           case (None, _) =>
-            GitBranchStateNoReleases(GitCommitWithCount(headCommit, getCommitCount(None)))
+            GitBranchStateNoReleases(GitCommitWithCount(headCommit, getCommitCount(None, firstParent)))
         }
 
       case None =>
@@ -132,7 +132,7 @@ class GitDriverImpl(dir: File) extends GitDriver {
     GitWorkingState(!checkClean())
   }
 
-  override def getCommitCount(hash: Option[String]): Int = {
+  override def getCommitCount(hash: Option[String], firstParent: Boolean): Int = {
     val limitStr = hash.map("^" + _).getOrElse("")
     val (_, output) = runCommand(s"""git rev-list --first-parent --count HEAD $limitStr""".trim)
     output.mkString("").trim.toInt
@@ -141,7 +141,7 @@ class GitDriverImpl(dir: File) extends GitDriver {
   /**
     * Executes a single "git log" command.
     */
-  private def gitLog(arguments: String): Seq[GitCommit] = {
+  private def gitLog(arguments: String, firstParent: Boolean): Seq[GitCommit] = {
     require(isGitRepo(dir), "Must be in a git repository")
 
     // originally this used "git describe", but that doesn't always work the way you want. its definition of "nearest"

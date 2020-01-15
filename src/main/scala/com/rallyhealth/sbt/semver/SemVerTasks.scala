@@ -1,6 +1,7 @@
 package com.rallyhealth.sbt.semver
 
 import com.rallyhealth.sbt.versioning.GitVersioningPlugin._
+import com.rallyhealth.sbt.versioning.GitVersioningPlugin.autoImport.firstParent
 import com.rallyhealth.sbt.versioning._
 import sbt.{Def, Task}
 import sbt.Keys.streams
@@ -16,7 +17,7 @@ object SemVerTasks {
     val typePrefix = s"$SemVerPrefix Check type:"
     val abortPrefix = s"$SemVerPrefix Check aborted:"
 
-    git.branchState match {
+    git.branchState(firstParent.value) match {
       case GitBranchStateTwoReleases(_, headVersion, _, prevVersion) =>
         if (git.workingState.isDirty) {
           logger.debug(s"$typePrefix comparing most recent release with post-tag changes")
