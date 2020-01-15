@@ -9,8 +9,8 @@ organization := "com.rallyhealth.sbt"
 semVerLimit := "1.0.999"
 licenses := Seq("MIT" -> url("http://opensource.org/licenses/MIT"))
 
-bintrayOrganization := Some("rallyhealth")
-bintrayRepository := "sbt-plugins"
+bintrayOrganization := Some("upstartcommerce")
+bintrayRepository := "generic"
 
 // SbtPlugin requires sbt 1.2.0+
 // See: https://developer.lightbend.com/blog/2018-07-02-sbt-1-2-0/#sbtplugin-for-plugin-development
@@ -40,6 +40,11 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.5" % Test,
   "se.sawano.java" % "alphanumeric-comparator" % "1.4.1"
 )
+
+resolvers in Global += Resolver.url(
+  "upstartcommerce",
+  url("https://upstartcommerce.bintray.com/nochannel")
+)(Resolver.ivyStylePatterns)
 
 // you need to enable the plugin HERE to depend on code in the plugin JAR. you can't add it as part of
 // libraryDependencies nor put it in plugins.sbt
