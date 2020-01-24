@@ -134,7 +134,18 @@ class GitDriverImpl(dir: File) extends GitDriver {
 
   override def getCommitCount(hash: Option[String], firstParent: Boolean): Int = {
     val limitStr = hash.map("^" + _).getOrElse("")
-    val (_, output) = runCommand(s"""git rev-list --first-parent --count HEAD $limitStr""".trim)
+
+    val command = List(
+      "git",
+      "rev-list",
+      if (firstParent) "--first-parent" else "",
+      "--count",
+      "HEAD",
+      limitStr,
+    ).mkString(" ").trim
+
+    val (_, output) = runCommand(command)
+
     output.mkString("").trim.toInt
   }
 
@@ -147,7 +158,18 @@ class GitDriverImpl(dir: File) extends GitDriver {
     // originally this used "git describe", but that doesn't always work the way you want. its definition of "nearest"
     // tag is not always what you think it means: it does NOT search backward to the root, it will search other
     // branches too. See http://www.xerxesb.com/2010/12/20/git-describe-and-the-tale-of-the-wrong-commits/
-    val cmd = s"git log --oneline --decorate=short --first-parent --simplify-by-decoration --no-abbrev-commit $arguments"
+
+    val cmd = List(
+      "git",
+      "log",
+      "--oneline",
+      "--decorate=short",
+      if (firstParent) "--first-parent" else "",
+      "--simplify-by-decoration",
+      "--no-abbrev-commit",
+      arguments
+    ).mkString(" ")
+
     /**
       * Example output:
       * {{{
