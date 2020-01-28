@@ -67,9 +67,6 @@ object SemVerPlugin extends AutoPlugin {
     lazy val semVerCheckOnPublish: SettingKey[Boolean] = settingKey[Boolean](
       "'semVerCheckOnPublish' enables checking SemVer on the 'publish' task. (default=true)")
 
-//    lazy val firstParent: SettingKey[Boolean] = settingKey[Boolean](
-//      "Uses firstParent flag for calculating current version.")
-
     lazy val semVerEnforcementLevelRules: TaskKey[Seq[SemVerLevelRule]] = taskKey[Seq[SemVerLevelRule]]("Defines the level of acceptable changes that should be enforced.")
     lazy val semVerEnforcementLevel: TaskKey[SemVerReleaseType] = taskKey[SemVerReleaseType]("The level of acceptable changes.")
     lazy val semVerCheckValidVersion: TaskKey[Unit] = taskKey[Unit]("Checks that the version is valid")
